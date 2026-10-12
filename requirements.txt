@@ -1,0 +1,8 @@
+# DataBridge - CSV Data Cleaner & Importer
+#
+# Core ETL & Database:
+# - Uses Python Standard Library: csv, sqlite3, re, unittest, os, sys
+#
+# Web Dashboard Interface:
+flask>=3.0.0
+

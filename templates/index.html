@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="DataBridge — Production-grade CSV Data Cleaner & Importer ETL pipeline web dashboard.">
+  <title>DataBridge — CSV Data Cleaner & Importer</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation & Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title-wrap">
+            <h1 class="brand-title">DataBridge</h1>
+            <span class="badge badge-accent">ETL Pipeline</span>
+          </div>
+          <p class="brand-subtitle">CSV Data Cleaner & Importer • SQLite Database</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="db-indicator">
+          <span class="status-dot"></span>
+          <span class="status-label">SQLite: databridge.db</span>
+        </div>
+        <button id="btnQuickSample" class="btn btn-secondary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+          Load Sample Dataset
+        </button>
+        <button id="btnResetDb" class="btn btn-danger-outline" title="Clear all stored customer records for re-testing">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"></polyline>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+          </svg>
+          Reset DB
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" aria-label="Main Navigation">
+      <button class="tab-btn active" data-tab="tab-import" id="tabNavImport">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        1. Ingest & Clean CSV
+      </button>
+      <button class="tab-btn" data-tab="tab-database" id="tabNavDatabase">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        2. Database Explorer
+        <span class="count-pill" id="navCountBadge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-analytics" id="tabNavAnalytics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        3. Metrics & Demographics
+      </button>
+      <button class="tab-btn" data-tab="tab-architecture" id="tabNavArchitecture">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="4 17 10 11 4 5"></polyline>
+          <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+        4. SQL Console & Schema
+      </button>
+    </nav>
+
+    <!-- Notification Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- MAIN CONTENT SECTIONS -->
+    <main class="app-main">
+      <!-- ==============================================
+           TAB 1: INGESTION & DATA CLEANING
+      =============================================== -->
+      <section id="tab-import" class="tab-content active">
+        <!-- File Drop Area -->
+        <div class="card upload-card">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Extract & Clean Ingestion Pipeline</h2>
+              <p class="card-desc">Upload raw customer CSV or test against the bundled realistic sample dataset.</p>
+            </div>
+            <div class="schema-tags">
+              <span class="schema-tag">Required Schema:</span>
+              <code>customer_id</code>
+              <code>name</code>
+              <code>email</code>
+              <code>city</code>
+              <code>age</code>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div id="dropZone" class="drop-zone">
+              <input type="file" id="csvFileInput" accept=".csv" class="file-input-hidden">
+              <div class="drop-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <h3 class="drop-prompt">Drag & Drop your customer CSV file here</h3>
+              <p class="drop-subtext">or click to browse files from your computer (UTF-8 / Excel CSV supported)</p>
+              <div class="drop-actions">
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('csvFileInput').click()">
+                  Select CSV File
+                </button>
+                <button type="button" class="btn btn-secondary" id="btnRunSampleImport">
+                  Import "customers.csv" (18 Records)
+                </button>
+              </div>
+            </div>
+
+            <!-- Loading Spinner State -->
+            <div id="importLoading" class="loading-state hidden">
+              <div class="spinner"></div>
+              <p class="loading-text">Validating records, sanitizing strings, checking database constraints...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Audit Report (rendered upon import) -->
+        <div id="auditReportSection" class="audit-section hidden">
+          <div class="section-title-wrap">
+            <h2 class="section-title">ETL Import Audit Results</h2>
+            <span class="badge badge-success" id="reportStatusBadge">Audit Complete</span>
+          </div>
+
+          <!-- KPI Metric Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Rows Read</div>
+              <div class="kpi-val" id="kpiTotalRead">0</div>
+              <div class="kpi-sub">Source CSV records</div>
+            </div>
+            <div class="kpi-card kpi-success">
+              <div class="kpi-label">Valid Records</div>
+              <div class="kpi-val" id="kpiValidCount">0</div>
+              <div class="kpi-sub">Passed all validation rules</div>
+            </div>
+            <div class="kpi-card kpi-primary">
+              <div class="kpi-label">Inserted to SQLite</div>
+              <div class="kpi-val" id="kpiInserted">0</div>
+              <div class="kpi-sub">New unique records stored</div>
+            </div>
+            <div class="kpi-card kpi-warning">
+              <div class="kpi-label">Duplicates Skipped</div>
+              <div class="kpi-val" id="kpiDuplicates">0</div>
+              <div class="kpi-sub">In batch or existing in DB</div>
+            </div>
+            <div class="kpi-card kpi-danger">
+              <div class="kpi-label">Invalid Rejected</div>
+              <div class="kpi-val" id="kpiRejected">0</div>
+              <div class="kpi-sub">Failed business rules</div>
+            </div>
+          </div>
+
+          <!-- Error Breakdown & Rules Overview -->
+          <div class="grid-2col">
+            <!-- Error Breakdown Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Rejection Breakdown by Category</h3>
+              </div>
+              <div class="card-body">
+                <div class="error-breakdown-list">
+                  <div class="error-stat-item">
+                    <div class="error-info">
+                      <span class="badge badge-amber">Missing Value</span>
+                      <span class="error-desc">Blank or whitespace-only required fields</span>
+                    </div>
+                    <span class="error-count-val" id="errMissing">0</span>
+                  </div>
+
+                  <div class="error-stat-item">
+                    <div class="error-info">
+                      <span class="badge badge-rose">Invalid Email</span>
+                      <span class="error-desc">Malformed address syntax (RFC compliant regex)</span>
+                    </div>
+                    <span class="error-count-val" id="errEmail">0</span>
+                  </div>
+
+                  <div class="error-stat-item">
+                    <div class="error-info">
+                      <span class="badge badge-orange">Invalid Age</span>
+                      <span class="error-desc">Non-numeric, negative, 0, or over 120 years</span>
+                    </div>
+                    <span class="error-count-val" id="errAge">0</span>
+                  </div>
+
+                  <div class="error-stat-item">
+                    <div class="error-info">
+                      <span class="badge badge-purple">Duplicate ID</span>
+                      <span class="error-desc">Customer ID already encountered in current batch</span>
+                    </div>
+                    <span class="error-count-val" id="errDuplicate">0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cleaning Actions Applied -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Transformations Applied</h3>
+              </div>
+              <div class="card-body">
+                <ul class="features-list">
+                  <li>
+                    <span class="check-icon">✓</span>
+                    <div>
+                      <strong>Whitespace Normalization:</strong> Strips leading/trailing spaces and collapses repeated spaces (`" Jane   Smith "` → `"Jane Smith"`).
+                    </div>
+                  </li>
+                  <li>
+                    <span class="check-icon">✓</span>
+                    <div>
+                      <strong>Strict Type Casting:</strong> Safely converts and validates age strings to integers.
+                    </div>
+                  </li>
+                  <li>
+                    <span class="check-icon">✓</span>
+                    <div>
+                      <strong>SQL Injection Immunity:</strong> Pure parameterized queries (`?`) applied across all columns.
+                    </div>
+                  </li>
+                  <li>
+                    <span class="check-icon">✓</span>
+                    <div>
+                      <strong>Idempotency:</strong> Re-importing identical records safely skips existing keys without crashing.
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rejected Rows Audit Log Table -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Rejected Rows Audit Trail</h3>
+                <p class="card-desc">Complete transparency: inspect line numbers and reasons for every rejected row.</p>
+              </div>
+              <span class="badge badge-danger" id="rejectedCountBadge">0 Rejections</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table" id="rejectedTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 80px;">Row #</th>
+                      <th style="width: 140px;">Customer ID</th>
+                      <th style="width: 150px;">Category</th>
+                      <th>Validation Failure Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody id="rejectedTableBody">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================
+           TAB 2: DATABASE EXPLORER
+      =============================================== -->
+      <section id="tab-database" class="tab-content">
+        <div class="card">
+          <div class="card-header flex-between">
+            <div>
+              <h2 class="card-title">Stored Customer Records (SQLite)</h2>
+              <p class="card-desc">Interactive query explorer for verified data stored in <code>databridge.db</code>.</p>
+            </div>
+            <div class="table-controls">
+              <div class="search-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="customerSearchInput" placeholder="Search by name or city..." autocomplete="off">
+              </div>
+              <a href="/api/export/csv" class="btn btn-secondary" title="Export clean records to CSV">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export CSV
+              </a>
+              <a href="/api/export/json" class="btn btn-secondary" title="Export clean records to JSON">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                JSON
+              </a>
+              <button id="btnRefreshCustomers" class="btn btn-secondary btn-icon" title="Refresh records">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="data-table" id="customersTable">
+                <thead>
+                  <tr>
+                    <th>Customer ID</th>
+                    <th>Name</th>
+                    <th>Email Address</th>
+                    <th>City</th>
+                    <th>Age</th>
+                    <th>Ingested At</th>
+                  </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                  <tr>
+                    <td colspan="6" class="text-center py-8 text-muted">
+                      No records loaded. Please import customer data on the first tab.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================
+           TAB 3: METRICS & DEMOGRAPHICS
+      =============================================== -->
+      <section id="tab-analytics" class="tab-content">
+        <div class="analytics-overview">
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-label">Total Stored Customers</div>
+              <div class="kpi-val" id="statsTotal">0</div>
+              <div class="kpi-sub">Relational database records</div>
+            </div>
+            <div class="kpi-card kpi-primary">
+              <div class="kpi-label">Unique Cities</div>
+              <div class="kpi-val" id="statsCities">0</div>
+              <div class="kpi-sub">Geographic distribution</div>
+            </div>
+            <div class="kpi-card kpi-success">
+              <div class="kpi-label">Average Customer Age</div>
+              <div class="kpi-val" id="statsAvgAge">0.0</div>
+              <div class="kpi-sub">Demographic mean</div>
+            </div>
+            <div class="kpi-card kpi-warning">
+              <div class="kpi-label">Age Range</div>
+              <div class="kpi-val" id="statsAgeRange">0 - 0</div>
+              <div class="kpi-sub">Min to Max customer ages</div>
+            </div>
+          </div>
+
+          <!-- City Distribution Chart -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Top Cities Distribution</h3>
+                <p class="card-desc">SQL Aggregation: <code>SELECT city, COUNT(*) FROM customers GROUP BY city</code></p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="cityChartContainer" class="chart-bars-container">
+                <p class="text-muted text-center py-6">Import data to visualize geographic customer distribution.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==============================================
+           TAB 4: ARCHITECTURE & INTERVIEW GUIDE
+      =============================================== -->
+      <section id="tab-architecture" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Data Integration (ETL) Architecture</h2>
+            <p class="card-desc">Understanding how the pipeline connects file ingestion, Python cleaning, and SQLite relational storage.</p>
+          </div>
+          <div class="card-body">
+            <div class="architecture-flow">
+              <div class="flow-step">
+                <div class="step-num">1</div>
+                <h4>Extract</h4>
+                <p>Safe reading using <code>csv.DictReader</code> with <code>utf-8-sig</code> encoding to absorb Windows Excel BOM. Early validation of mandatory headers.</p>
+                <code>customers.csv</code>
+              </div>
+              <div class="flow-arrow">➔</div>
+              <div class="flow-step">
+                <div class="step-num">2</div>
+                <h4>Transform & Clean</h4>
+                <p>Whitespace stripping, regex email parsing, positive integer bounds (1–120), and in-memory batch duplicate detection.</p>
+                <code>data_cleaner.py</code>
+              </div>
+              <div class="flow-arrow">➔</div>
+              <div class="flow-step">
+                <div class="step-num">3</div>
+                <h4>Load</h4>
+                <p>Parameterized queries (<code>?</code>) eliminate SQL Injection. SQLite transaction commit/rollback ensures atomicity.</p>
+                <code>database.py</code>
+              </div>
+              <div class="flow-arrow">➔</div>
+              <div class="flow-step">
+                <div class="step-num">4</div>
+                <h4>Audit Report</h4>
+                <p>Every rejected row is logged with line number, ID, and detailed error description for auditability.</p>
+                <code>reporter.py / Web API</code>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive SQL Query Console -->
+        <div class="card mt-4">
+          <div class="card-header flex-between">
+            <div>
+              <h2 class="card-title">Interactive SQL Query Console</h2>
+              <p class="card-desc">Execute live read-only SQL queries directly against <code>databridge.db</code> with real-time performance metrics.</p>
+            </div>
+            <div class="sql-badges">
+              <span class="badge badge-accent" id="queryTimerBadge">Ready</span>
+              <span class="badge badge-success" id="queryCountBadge">0 Rows</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Preset Quick Queries -->
+            <div class="sql-preset-chips mb-3">
+              <span class="preset-label">Query Presets:</span>
+              <button type="button" class="preset-chip active" data-query="SELECT * FROM customers ORDER BY customer_id ASC LIMIT 10;">All Customers</button>
+              <button type="button" class="preset-chip" data-query="SELECT city, COUNT(*) AS count, ROUND(AVG(age), 1) AS avg_age, MIN(age) AS min_age, MAX(age) AS max_age FROM customers GROUP BY city ORDER BY count DESC;">City Demographics</button>
+              <button type="button" class="preset-chip" data-query="SELECT customer_id, name, city, age FROM customers WHERE age BETWEEN 20 AND 35 ORDER BY age ASC;">Young Adults (20-35)</button>
+              <button type="button" class="preset-chip" data-query="SELECT customer_id, name, email, imported_at FROM customers ORDER BY imported_at DESC LIMIT 5;">Recent Imports</button>
+            </div>
+
+            <!-- SQL Textarea & Run Button -->
+            <div class="sql-editor-wrap">
+              <textarea id="sqlQueryInput" class="sql-textarea" rows="3" spellcheck="false">SELECT * FROM customers ORDER BY customer_id ASC LIMIT 10;</textarea>
+              <div class="sql-controls">
+                <button type="button" id="btnRunQuery" class="btn btn-primary">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  Execute Query
+                </button>
+              </div>
+            </div>
+
+            <!-- SQL Results Table -->
+            <div id="sqlResultContainer" class="mt-4">
+              <div class="table-responsive">
+                <table class="data-table" id="sqlResultTable">
+                  <thead id="sqlResultThead"></thead>
+                  <tbody id="sqlResultTbody">
+                    <tr>
+                      <td class="text-center py-6 text-muted">Click "Execute Query" to inspect live query output.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Database Schema & SQLite Diagnostics -->
+        <div class="card mt-4">
+          <div class="card-header">
+            <div>
+              <h2 class="card-title">Database Schema & SQLite Health Inspector</h2>
+              <p class="card-desc">DDL Schema definition and embedded database file integrity metrics.</p>
+            </div>
+            <button type="button" id="btnRefreshSchema" class="btn btn-secondary btn-icon" title="Refresh Schema">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+              </svg>
+            </button>
+          </div>
+          <div class="card-body">
+            <!-- Health metrics banner -->
+            <div class="db-health-grid mb-4">
+              <div class="health-item">
+                <span class="health-label">Database File:</span>
+                <span class="health-val font-mono">databridge.db</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">File Size:</span>
+                <span class="health-val font-mono" id="healthFileSize">-- KB</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">PRAGMA Integrity Check:</span>
+                <span class="badge badge-success" id="healthIntegrity">OK</span>
+              </div>
+              <div class="health-item">
+                <span class="health-label">Total Live Records:</span>
+                <span class="health-val font-mono" id="healthRowCount">0</span>
+              </div>
+            </div>
+
+            <!-- Table Schema -->
+            <h4 class="schema-heading">Table: <code>customers</code> (DDL Column Constraints)</h4>
+            <div class="table-responsive">
+              <table class="data-table" id="schemaTable">
+                <thead>
+                  <tr>
+                    <th>Column</th>
+                    <th>SQLite Type</th>
+                    <th>Primary Key</th>
+                    <th>Not Null Constraint</th>
+                    <th>Default Value</th>
+                  </tr>
+                </thead>
+                <tbody id="schemaTableBody">
+                  <!-- Populated via /api/schema -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>DataBridge • Built with Python 3, Flask, Vanilla CSS & JavaScript, SQLite • B.Tech CS & AIML Student Portfolio</p>
+    </footer>
+  </div>
+
+  <!-- Application Logic -->
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

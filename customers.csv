@@ -1,0 +1,19 @@
+customer_id,name,email,city,age
+CUST101,John Doe,john.doe@example.com,New York,29
+CUST102,  Jane Smith  ,jane.smith@email.com, Los Angeles ,34
+CUST103,Michael Brown,michael.brown@sample.org,Chicago,42
+CUST104,Emily Davis,,Houston,25
+CUST105,Robert Johnson,robert.j@domain,Phoenix,38
+CUST106,Sarah Wilson,sarah.w@techco.com,Philadelphia,28
+CUST107,David Miller,david.m@webmail.net,San Antonio,-5
+CUST108,,alex.turner@cloud.io,San Diego,31
+CUST109,Lisa Anderson,lisa.anderson@example.com,Dallas,150
+CUST110,James Thomas,james.t@corp.net,San Jose,45
+CUST103,Michael Duplicate,duplicate.michael@sample.org,Chicago,42
+CUST111,Patricia Jackson,patricia.j@domain.org,Austin,52
+CUST112,  Christopher White  , chris.white@gmail.com , Seattle , 27 
+CUST113,Amanda Harris,amanda.harris@company.com,,33
+CUST114,Daniel Martin,daniel.martin_not_an_email,Denver,40
+CUST115,Elizabeth Clark,elizabeth.c@network.org,Boston,twenty
+CUST116,Kevin Lewis,kevin.lewis@startup.co,Miami,36
+CUST117,Rachel Walker,rachel.w@domain.com,Atlanta,29
